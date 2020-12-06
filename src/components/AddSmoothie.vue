@@ -7,9 +7,10 @@
           <label for="title">Smoothie Title:</label>
           <input type="text" name="title" v-model="title" />
         </div>
-        <div v-for="(ing, index) in ingredients" :key="index">
+        <div v-for="(ing, index) in ingredients" :key="index" class="field">
           <label for="ingredient">Ingredients</label>
           <input type="text" name="ingredient" v-model="ingredients[index]" />
+          <i class="material-icons delete" @click="deleteIng(ing)">delete</i>
         </div>
         <div class="title add-ingredient">
           <label for="add-ingredient">Add an ingredient:</label>
@@ -30,6 +31,9 @@
 </template>
 
 <script>
+import db from "@/firebase/init";
+import slugify from "slugify";
+
 export default {
   name: "AddSmoothie",
   data() {
@@ -42,7 +46,29 @@ export default {
   },
   methods: {
     addSmoothie() {
-      console.log(this.title, this.ingredients);
+      if (this.title) {
+        this.feedback = null;
+        // create a slug
+        this.slug = slugify(this.title, {
+          replacement: "-",
+          remove: /[*+~.()'"!:@]/g,
+          lower: true,
+        });
+        db.collection("smoothies")
+          .add({
+            title: this.title,
+            ingredients: this.ingredients,
+            slug: this.slug,
+          })
+          .then(() => {
+            this.$router.push({ name: "Index" });
+          })
+          .catch((err) => {
+            console.log(err);
+          });
+      } else {
+        this.feedback = "You must enter a smoothie title";
+      }
     },
     addIng() {
       if (this.another) {
@@ -50,10 +76,14 @@ export default {
         console.log(this.another);
         this.another = null;
         this.feedback = null;
+      } else {
+        this.feedback = "You must enter a value to an an ingredient";
       }
-      else {
-        this.feedback = 'You must enter a value to an an ingredient'
-      }
+    },
+    deleteIng(ing) {
+      this.ingredients = this.ingredients.filter((ingredient) => {
+        return ingredient != ing;
+      });
     },
   },
 };
@@ -72,5 +102,15 @@ export default {
 
 .add-smoothie .field {
   margin: 20px auto;
+  position: relative;
+}
+
+.add-smoothie .delete {
+  position: absolute;
+  right: 0;
+  bottom: 16px;
+  color: #aaa;
+  font-size: 1.4em;
+  cursor: pointer;
 }
 </style>
